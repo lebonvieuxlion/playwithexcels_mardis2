@@ -4,18 +4,16 @@ require 'nokogiri'
 require 'open-uri'
 require 'pry'
 require 'json'
+require 'google_drive'
+require 'csv'
 
 
 
 class Scrapper
 
 
-	def initialize
 
-		save_as_JSON
-
-	end
-
+#OBTENIR L'EMAIL SUR LA PAGE D'UNE VILLE
 
 
 	def get_townhall_email(townhall_url)
@@ -30,6 +28,8 @@ class Scrapper
 
 
 
+
+#CONSTANTE ET METHODE POUR SCRAPPER LES URLS DES PAGES DE CHAQUE VILLE
 
 
 	PAGE_URL = "http://annuaire-des-mairies.com/val-d-oise.html"
@@ -57,6 +57,8 @@ class Scrapper
 
 
 
+#OBTENIR TOUS LES NOMS DE VILLE
+
 	def get_townhall_name
 
 		name_storage = []								#crée un array vide où entreproser les noms des villes que l'on scrappe
@@ -79,6 +81,8 @@ class Scrapper
 
 
 
+
+#OBTENIR TOUS LES EMAILS DE TOUTES LES MAIRIES
 
 	def get_all_email 
 
@@ -103,12 +107,34 @@ class Scrapper
 	end
 
 
-	def perform													#combine les méthodes get_townhall_name et get_all_email pour obtenir un hash avec comme
-		my_hash = Hash[get_townhall_name.zip get_all_email]		#clef le nom de la ville et en valeur son email
 
-		return my_hash
+
+#AFFICHER LE SCRAPPING DANS UN ARRAY REMPLI DE HASH OU CHAQUE HASH REPRESENTE UNE VILLE
+
+	def perform
+																
+
+		array_keys = get_townhall_name							#création d'un array où l'on entreprose les noms de villes
+
+		array_values = get_all_email 							#création d'un array où l'on entrepose les mails de mairie
+
+		array_of_hash = []  									#création d'un hash où seront entreprosés nos différents hash
+
+		array_keys.length.times do |i|							#grâce à cette boucle j'entrepose en me servant de l'index j'associe les noms de villes
+																# au mails correspondants pour ensuite les mettre dans un hash
+			town_hash = {array_keys[i] => array_values[i]}
+
+			array_of_hash << town_hash							#je mets ensuite chaque hash dans l'array accueillant tous les hahs
+
+		end
+
+		return array_of_hash
+
 	end
 
+
+
+#ENREGISTRER LE RESULTAT DU SCRAPPING EN JSON
 
 
 	def save_as_JSON
@@ -124,6 +150,68 @@ class Scrapper
 
 
 
-end
 
-Binding.pry
+
+#ENREGISTRER LE RESULTAT DU SCRAPPING EN SPREADSHEETS
+
+	def save_as_spreadsheets
+
+
+		session = GoogleDrive::Session.from_config("config.json")										#permet de se brancher à l'api grâce à un fichier config.json qui contient l'ID
+																										#et la clef secrète donnée par Google
+
+
+
+		ws = session.spreadsheet_by_key("1oppW3bqvyrhxFnI679q8xeM1AcMthMScBS-yyjIgm-A").worksheets[0] 	#on va chercher la clef de la spreadsheet grâce à la clef
+																										#contenue dans l'URL. Enfin on va chercher la première feuille
+																										#du fichier spreadsheet 
+
+
+       array = perform																					#on récupère le array de hashs
+
+
+       	i = 1
+
+		array.each do |hash|
+
+			hash.each do|town, email|
+
+				ws[i, 1] = town
+
+				ws [i, 2] = email
+
+				i += 1
+
+			end
+
+			ws.save
+
+		end
+
+
+		puts "Tu peux vérifier le résultat à cette URL : https://docs.google.com/spreadsheets/d/1oppW3bqvyrhxFnI679q8xeM1AcMthMScBS-yyjIgm-A/edit#gid=0"
+																										
+	end
+
+
+
+#ENREGISTRER LE RESULTAT DU SCRAPPING EN CSV
+
+	def save_as_CSV
+
+		array = perform										#on récupère le array de hash
+
+		CSV.open("db/emails.csv", "wb") do |csv|			#on crée un fichier csv avec des droits particuliers sur lequel on itère
+
+			array.each do |hash|
+				csv << [hash.keys, hash.values]             #on rentre sur la même ligne la clef et la valeur de chaque hash
+			end
+
+		end
+
+
+	end
+
+
+
+end

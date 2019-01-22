@@ -2,13 +2,20 @@ require_relative '../app/scrapper'
 
 require 'pry'
 
+
+
 class Index
 
-	def initialize
 
-		offer_choices_to_user
+	def initialize			
+
+		save_choices
 
 	end
+
+
+
+#DEFINITION DES CHOIX QUE L'UTILISAREUR VA AVOIR EN EXECUTANT LE FICHIER APP.RB
 
 	def offer_choices_to_user
 
@@ -20,22 +27,31 @@ class Index
 
 		 @@choice = gets.to_i
 
-		return puts @@choice
+		return @@choice
 
 	end
+
+
+#DEFINITION DES CONSEQUENCES POUR LES CHOIX FAIT PAR L'UTILISATEUR AVEC LA METHODE offer_choices_to_user
 
 
 	def save_choices
 
-		case 
+
+		case offer_choices_to_user			#on exécute la méthode offer_choices_to_user et pour chaque output on appelle la classe correspondante
 
 		when @@choice = 1
-			Scrapper.new
-		else
-			puts "fail"
+			Scrapper.new.save_as_JSON
+
+		when @@choice = 2
+			Scrapper.new.save_as_spreadsheets
+
+		when @@choice = 3
+			Scrapper.new.save_as_CSV
+
 		end
 	end
 
+
 end
 
-Binding.pry
